@@ -14,7 +14,7 @@ require("dotenv").config()
 // 2. MIDDLEWARES
 app.use(express.static("public"))
 
-app.set("views", __dirname + "views")
+app.set("views", __dirname + "/views")
 app.set("view engine", "hbs")
 
 hbs.registerPartials(__dirname + "/views/partials")
@@ -26,8 +26,8 @@ connectDB()
 
 // 3. RUTAS
 app.use("/auth", require("./routes/auth"))
-app.use("/", require("./routes/index"))
 app.use("/users", require("./routes/users"))
+app.use("/", require("./routes/index"))
 
 // 4. SERVIDOR
 app.listen(process.env.PORT, () => {

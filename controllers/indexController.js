@@ -1,3 +1,3 @@
-exports.home = async(req,res) => {
-res.send("Estás en el home")
+exports.home = async (req, res) => {
+	res.render("home")
 }

@@ -7,7 +7,8 @@
     <input type="text" name="username" placeholder="ironhacker" />
     
     <label>Email</label>
-    <input type="email" name="email" placeholder="rockstar@ironhack.com" />
+    <input type="email" name="email" placeholder="rockstar@ironhack.com" /> 
+    {{!-- aquí el cliente detiene cualquier error, con el type=email; si tienes otro tipo de type entonces toda la  responsabilidad llega del lado del servidor --}}
     
     <label>Password</label>
 	<input type="password" name="password" placeholder="********" />
@@ -15,4 +16,8 @@
     <button type="submit">Crear cuenta</button>
 
   </form>
+
+  {{#if errorMessage}}
+  <p class="error">{{errorMessage}}</p>
+  {{/if}}
 </div>

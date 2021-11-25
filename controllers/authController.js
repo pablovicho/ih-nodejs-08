@@ -3,10 +3,10 @@
 const User		= require("./../models/User")
 const bcryptjs = require("bcryptjs")
 
-
-
 exports.viewRegister = (req, res) => {
+
 	res.render("auth/signup")
+
 }
 
 exports.register = async (req, res) => {
@@ -16,102 +16,133 @@ exports.register = async (req, res) => {
 	const email 	= req.body.email
 	const password 	= req.body.password
 
-    //  validación: checar que username, email y password tengan contenido
-    if(!username || !email || !password) {
-        res.render("auth/signup", {
-         errorMessage: "Uno o más campos están vacíos"   
-        })
-        return
-    }
+	// => A) VALIDACIÓN - VERIFICACIÓN DE CAMPOS VACÍOS
+	// VERIFICAR QUE USERNAME, EMAIL Y PASSWORD TENGAN CONTENIDO. 
+	// ES DECIR QUE NO LLEGUEN VACÍOS.
+	if(!username || !email || !password){
+		res.render("auth/signup", {
+			errorMessage: "Uno o más campos están vacíos. Revísalos nuevamente."
+		})
 
-    // validación 2 -- fortalecimiento de PW. Verificar que el pw tenga 6 caracteres, mínimo 1 número y al menos una mayúscula
-    const regex = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,} ///regex: expresiones regulares, auditar textos específicos
-    if(!regex.test(password)){  //el método test viene en js
-res.render("auth/signup", {
-    errorMessage: "Tu password debe tener al menos un número y una mayúscula"
-})
-return
-    }
+		return
+	}
 
-	// 2. ENCRIPTACIÓN DE PASSWORD 🚩🚩🚩 Sha-256
+	// => B) VALIDACIÓN - FORTALECIMIENTO DE PASSWORD
+	// VERIFIQUE QUE EL PASSWORD TENGA 6 CARACTERES, 
+	// MÍNIMO UN NÚMERO Y UNA MAYÚSCULA.
+	// REGEX - CONJUNTO DE REGLAS QUE AUDITAN UN TEXTO PLANO
+	const regex = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}/
 
-    //si  llega a haber un problema en un ente externo, entonces el catch puede generar el error y avisarnos
-    try{
-        const salt = await bcryptjs.genSalt(10)
-        const passwordEncriptado = await bcryptjs.hash(password, salt)
-        
-        const newUser = await User.create({
-            username,
-            email,
-            passwordEncriptado
-        }) 
-        
-        // 3. REDIRECCIÓN DE USUARIO
-        res.redirect("/")
+	if(!regex.test(password)){
+		
+		res.render("auth/signup", {
+			errorMessage: "Tu password debe de contener 6 caracteres, mínimo un número y una mayúscula."
+		})		
 
-    } catch (error) { //sección de errores
-        console.log(error)
-res.status(500).render("auth/signup", {
-    errorMessage: error.message //el error que viene del catch
-}) //códigos de estado del servidor
-    }
-
-}
-
-exports.viewLogin  = async(req,res) => {
-res.render("auth/login")
-}
-
-exports.login = async(req,res) => {
-    try {
-        const email = req.body.email
-        const  password = req.body.password
-        console.log(password)
-
-    
-    // 1. obtención de datos del formulario
-const foundUser = await  User.findOne({email})
-
-    // 2. validación de usuario encontrado en BD
-if(!foundUser){
-    res.render("auth/login", {
-        errorMessage: "Email o contraseña sin coincidencia."
-    })
-    return
-}
-    // 3. validación de contraseña
- const verifiedPass = await bcryptjs.compareSync(password, foundUser.passwordEncriptado) //compareSync  encripta el texto y lo compara con el passwordEncriptado. regresa un booleano
-if(!verifiedPass){
-    res.render("auth/login", {
-        errorMessage: "Email o contraseña errónea. intenta nuevamente"
-    })
-}
-
- // 4. generar sesión: enviar cookie al usuario, generar persistencia de identidad
-req.session.currentUser = {
-    _id: foundUser._id,
-    username:foundUser.username,
-    email:foundUser.email,
-    mensaje: "Lo logramos!!"
-}
+		return
+	}
 
 
- // 5. redireccionar al home
-    res.redirect("/users/profile")
-} catch(error) {
-    console.log(error)
-}
 
+
+
+	// 2. ENCRIPTACIÓN DE PASSWORD 🚩🚩🚩
+
+	try {
+		const salt = await bcryptjs.genSalt(10)
+		const passwordEncriptado = await bcryptjs.hash(password, salt)
+		
+		const newUser = await User.create({
+			username,
+			email,
+			passwordEncriptado
+		}) 
+
+		console.log(newUser)
+		
+		// 3. REDIRECCIÓN DE USUARIO
+		res.redirect("/auth/login")
+
+	} catch (error) {
+
+		console.log(error)
+
+		res.status(500).render("auth/signup", {
+			errorMessage: "Hubo un error con la validez de tu correo. Intenta nuevamente. No dejes espacios y usa minúsculas."
+		})
+
+	}
+
+	
 
 }
 
-exports.logout = async(req,res) => {
-  res.clearCookie('session-token')
-  req.session.destroy((error) => { //destroy borra la cookie
-    if(error){
-        console.log(error) 
-        return//si hay un error al borrar la cookie
-    }
-    res.redirect("/")
-  })
+exports.viewLogin = async (req, res) => {
+	res.render("auth/login")
+}
+
+exports.login = async (req, res) => {
+
+	try {
+	// 1. OBTENCIÓN DE DATOS DEL FORMULARIO
+	const email = req.body.email
+	const password = req.body.password
+	
+	// 2. VALIDACIÓN DE USUARIO ENCONTRADO EN BD
+	const foundUser = await User.findOne({ email })
+
+	if(!foundUser){
+		res.render("auth/login", {
+			errorMessage: "Email o contraseña sin coincidencia."
+		})
+
+		return
+	}
+
+	// 3. VALIDACIÓN DE CONTRASEÑA
+	// COMPARAR LA CONTRASEÑA DEL FORMULARIO (1) VS LA CONTRASEÑA DE LA BASE DE DATOS (2)
+
+	const verifiedPass = await bcryptjs.compareSync(password, foundUser.passwordEncriptado)
+
+	if(!verifiedPass){
+		res.render("auth/login", {
+			errorMessage: "Email o contraseña errónea. Intenta nuevamente."
+		})
+
+		return
+	}
+
+	// 4. (PRÓXIMAMENTE) GENERAR LA SESIÓN
+	// PERSISTENCIA DE IDENTIDAD
+	req.session.currentUser = {
+		_id: foundUser._id,
+		username: foundUser.username,
+		email: foundUser.email,
+		mensaje: "LO LOGRAMOS CARAJO"
+	}
+
+	// 5. REDIRECCIONAR AL HOME
+	res.redirect("/users/profile")
+
+
+	} catch (error) {
+		console.log(error)	
+	}
+}
+
+exports.logout = async (req, res)  => {
+
+	req.session.destroy((error) => {
+
+		// SE EVALUÁ SI HUBO UN ERROR AL BORRAR LA COOKIE
+		if(error){
+			console.log(error)
+			return
+		}
+
+		// REDIRECCIONAR HACIA LA PÁGINA DE HOME
+		res.redirect("/")
+
+	})
+
 }
